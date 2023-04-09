@@ -1,24 +1,32 @@
 import React from "react";
 import "./leaderboard.css";
-import { FaCrown } from "react-icons/fa";
+import fireHeart from "./../../assets/images/fire_heart_dark.svg";
 
-export const LeaderboardTile = () => {
+export const LeaderboardTile = ({ rank, fires, name }) => {
   return (
     <div className="leaderboard-tile">
       <div style={{ display: "flex" }}>
         <div>
-          <h2 className="user-rank">01</h2>
+          <h2 className="user-rank">{rank > 9 ? rank : `0${rank}`}</h2>
         </div>
-        <div>
-          <h3 className="user-name">Esther Howard</h3>
-          <p className="user-fires">{34} Fires</p>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          <h3 className="user-name">{name}</h3>
         </div>
       </div>
       <div className="user-display-image">
-        <img
-          src="https://source.unsplash.com/random/200x200?q=person"
-          alt="IMG"
-        ></img>
+        <span
+          style={{ color: "#7662e9", fontWeight: "500", paddingRight: "8px" }}
+        >
+          {fires}
+        </span>
+        {/* <BsFire size={24} color="purple" /> */}
+        <img width={24} src={fireHeart} alt="fireheart"></img>
       </div>
     </div>
   );
