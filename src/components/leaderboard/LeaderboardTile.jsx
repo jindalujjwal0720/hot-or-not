@@ -2,7 +2,7 @@ import React from "react";
 import "./leaderboard.css";
 import fireHeart from "./../../assets/images/fire_heart_dark.svg";
 
-export const LeaderboardTile = ({ rank, fires, name }) => {
+export const LeaderboardTile = ({ rank, fires, name, yearOfStudy }) => {
   return (
     <div className="leaderboard-tile">
       <div style={{ display: "flex" }}>
@@ -17,6 +17,9 @@ export const LeaderboardTile = ({ rank, fires, name }) => {
           }}
         >
           <h3 className="user-name">{name}</h3>
+          <span style={{ fontSize: "small", color: "rgb(145, 145, 145)" }}>
+            Year {yearOfStudy}
+          </span>
         </div>
       </div>
       <div className="user-display-image">

@@ -8,11 +8,31 @@ export const LeaderboardPage = () => {
     <div className="page-container">
       <h1 className="heading">Hotboard</h1>
       <FirstSecondThird />
-      <LeaderboardTile rank={1} fires={34} name={"Edward Jenner"} />
-      <LeaderboardTile rank={2} fires={30} name={"Kyle Smith"} />
-      <LeaderboardTile rank={3} fires={27} name={"Samudra Mitra"} />
-      <LeaderboardTile rank={4} fires={20} name={"Vishal Shrivastava"} />
-      <LeaderboardTile rank={5} fires={6} name={"Cprakash"} />
+      <LeaderboardTile
+        rank={1}
+        fires={34}
+        name={"Edward Jenner"}
+        yearOfStudy={1}
+      />
+      <LeaderboardTile
+        rank={2}
+        fires={30}
+        name={"Kyle Smith"}
+        yearOfStudy={1}
+      />
+      <LeaderboardTile
+        rank={3}
+        fires={27}
+        name={"Samudra Mitra"}
+        yearOfStudy={2}
+      />
+      <LeaderboardTile
+        rank={4}
+        fires={20}
+        name={"Vishal Shrivastava"}
+        yearOfStudy={2}
+      />
+      <LeaderboardTile rank={5} fires={6} name={"Cprakash"} yearOfStudy={2} />
     </div>
   );
 };
