@@ -1,9 +1,39 @@
 h1 {
-    margin: 0;
+  margin: 0;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .heading {
-    padding: 20px 0 10px 20px;
-    letter-spacing: 0.7px;
-    color: purple;
+  padding: 0 20px;
+  letter-spacing: 0.7px;
+  color: purple;
+}
+
+.error-div {
+  color: red;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.profile-image-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+.profile-image-button img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 50%;
 }

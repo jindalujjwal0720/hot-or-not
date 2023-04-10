@@ -84,9 +84,27 @@
   letter-spacing: 0.5px;
 }
 
+.login-button:disabled {
+  background-color: #7a89eb;
+}
+
 .forgot-password {
   font-size: 14px;
   color: rgb(145, 145, 145);
+}
+
+.forgot-password-mail-sent {
+  font-size: 14px;
+  color: rgb(145, 145, 145);
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
 }
 
 .footer {

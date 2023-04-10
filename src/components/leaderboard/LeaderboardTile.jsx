@@ -28,7 +28,6 @@ export const LeaderboardTile = ({ rank, fires, name, yearOfStudy }) => {
         >
           {fires}
         </span>
-        {/* <BsFire size={24} color="purple" /> */}
         <img width={24} src={fireHeart} alt="fireheart"></img>
       </div>
     </div>

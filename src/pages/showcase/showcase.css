@@ -1,11 +1,95 @@
 .showcase-page-container {
   height: 100vh;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .swipe-cards-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  position: relative;
+  flex: 3;
+}
+
+.swipe-buttons {
+  flex: 1;
+  align-self: center;
+  display: flex;
+}
+
+.swipe-buttons button {
+  outline: 0;
+  border: none;
+  background-color: white;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  margin: 12px;
+  object-fit: cover;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.navigation-buttons {
+  display: flex;
+  align-items: center;
+  margin: 30px;
+  gap: 20px;
+}
+
+.navigation-buttons button {
+  outline: 0;
+  border: none;
+  padding: 10px;
+  background-color: white;
+  border-radius: 50%;
+  object-fit: cover;
+  overflow: hidden;
+  width: 50px;
+  height: 50px;
+}
+
+.bottom-navigation-bar {
+  display: none;
+}
+
+.bottom-navigation-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background-color: #fcf3fe;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0px 0px 5px pink;
+}
+
+.bottom-navigation-bar button {
+  outline: 0;
+  border: none;
+  padding: 10px;
+  border-radius: 50%;
+  background-color: transparent;
+  object-fit: cover;
+  overflow: hidden;
+  width: 48px;
+  height: 48px;
+}
+
+@media screen and (orientation: portrait) {
+  .navigation-buttons {
+    visibility: hidden;
+  }
+  .bottom-navigation-bar {
+    display: flex;
+  }
 }
