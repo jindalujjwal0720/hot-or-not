@@ -11,7 +11,7 @@ export const FirstSecondThird = ({ first, second, third }) => {
         <div>
           <img
             className="user-display-image rank-2"
-            src={second.image}
+            src={second.image.url}
             alt="2nd"
           ></img>
         </div>
@@ -25,7 +25,7 @@ export const FirstSecondThird = ({ first, second, third }) => {
         <div>
           <img
             className="user-display-image rank-1"
-            src={first.image}
+            src={first.image.url}
             alt="1st"
           ></img>
         </div>
@@ -38,7 +38,7 @@ export const FirstSecondThird = ({ first, second, third }) => {
         <div>
           <img
             className="user-display-image rank-3"
-            src={third.image}
+            src={third.image.url}
             alt="3rd"
           ></img>
         </div>

@@ -22,18 +22,13 @@ h1 {
   font-weight: 500;
 }
 
-.profile-image-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  object-fit: cover;
-  border-radius: 50%;
-  background-color: transparent;
+.bottom-navigation-bar .profile-image-button {
+  padding: 6px;
 }
 
 .profile-image-button img {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   object-fit: cover;
   border-radius: 50%;
 }

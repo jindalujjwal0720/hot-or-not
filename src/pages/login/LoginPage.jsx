@@ -3,8 +3,9 @@ import "./login.css";
 import fireHeart from "./../../assets/images/fire_heart.svg";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import "./../../combined.css";
 
-export const LoginPage = () => {
+const LoginPage = () => {
   const emailRef = useRef();
   const passwordRef = useRef();
   const { login, resetPassword, currentUser } = useAuth();
@@ -42,7 +43,6 @@ export const LoginPage = () => {
 
   async function handleSubmit(e) {
     e.preventDefault();
-
     try {
       setError("");
       setLoading(true);
@@ -63,7 +63,7 @@ export const LoginPage = () => {
   }, []);
 
   return (
-    <div className="login-container">
+    <div className="login-container" style={{ height: window.innerHeight }}>
       <div className="header">
         <div className="header-content">
           <img className="header-logo" src={fireHeart} alt="fireheart"></img>
@@ -126,3 +126,5 @@ export const LoginPage = () => {
     </div>
   );
 };
+
+export default LoginPage;

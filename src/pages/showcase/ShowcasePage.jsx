@@ -1,8 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { SwipeCard } from "../../components/showcase/SwipeCard";
+import React, { useEffect, useState } from "react";
 import "./showcase.css";
-import fireHeart from "./../../assets/images/fire_heart.svg";
-import { ImCross } from "react-icons/im";
 import leaderboard from "./../../assets/images/leaderboard.svg";
 import { Link } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
@@ -15,127 +12,56 @@ import {
   limit,
   orderBy,
   query,
-  updateDoc,
-  where,
 } from "firebase/firestore";
 import { firestore } from "../../utils/firebase";
+import { Choose } from "../../components/showcase/Choose";
+import "./../../combined.css";
+import axios from "axios";
 
-export const ShowcasePage = () => {
-  const [lastDirection, setLastDirection] = useState(null);
-  const [list, setList] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(list.length - 1);
-  const currentIndexRef = useRef(null);
-  const [childRefs, setChildRefs] = useState(null);
+const ShowcasePage = () => {
+  const [list, setList] = useState(null);
   const { logout, currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [thisUser, setThisUser] = useState(null);
 
-  const updateCurrentIndex = (val) => {
-    setCurrentIndex(val);
-    currentIndexRef.current = val;
-  };
-
-  const removeCard = (direction) => {
-    // console.log(`${currentIndex} removing... in direction ${direction}`);
-    swipe(direction);
-  };
-
-  // set last direction and decrease current index
-  const swiped = (index, direction) => {
-    setLastDirection(direction);
-    updateCurrentIndex(index - 1);
-  };
-
-  const canSwipe = currentIndex >= 0;
-
-  const swipe = async (dir) => {
-    if (canSwipe && currentIndex < list.length) {
-      await childRefs[currentIndex].current.swipe(dir); // Swipe the card!
-    }
-  };
-
-  const calculateIncrementInFireHearts = (dir, index) => {
-    const ScalingFactor = 100,
-      IncrementFactor = 20;
-    const A = dir === "right";
-    const B = list[index].firehearts >= thisUser.firehearts;
-    const sign = A ? 1 : -1;
-    const d = Math.abs(list[index].firehearts - thisUser.firehearts);
-    const p = 1 / (1 + Math.pow(10, d / ScalingFactor));
-    const delta = sign * IncrementFactor * Math.abs(!(A ^ B) - p);
-    const R = Math.floor(list[index].firehearts + delta);
-    return R - list[index].firehearts;
-  };
-
-  const alreadyFireheartGivenToUser = (index) => {
-    const id = list[index].id;
-    const key = "firehearts";
-    const firehearts = sessionStorage.getItem(key);
-    if (!firehearts) return false;
-    const listOfFirehearts = JSON.parse(firehearts);
-    return listOfFirehearts.includes(id);
-  };
-
-  // write logic here
-  const onCardGone = async (dir, index) => {
-    if (index >= 0 && !alreadyFireheartGivenToUser(index)) {
-      // calculation of change of firehearts
-      const increment = calculateIncrementInFireHearts(dir, index);
-      // increment the value in firestore
-      const docRef = doc(firestore, `users/${list[index].id}`);
-      updateDoc(docRef, {
-        firehearts: list[index].firehearts + increment,
-        lastEdited: Date.now(),
-      }).then(() => {
-        console.log("Firehearts Updated");
-        // updating in session storage
-        const key = "firehearts";
-        const firehearts = sessionStorage.getItem(key);
-        if (!firehearts) {
-          const listOfFirehearts = [list[index].id];
-          sessionStorage.setItem(key, JSON.stringify(listOfFirehearts));
-        } else {
-          const listOfFirehearts = [...JSON.parse(firehearts), list[index].id];
-          sessionStorage.setItem(key, JSON.stringify(listOfFirehearts));
-        }
-      });
-    }
-  };
-
   useEffect(() => {
     const fetchRandomUsers = async () => {
       setLoading(true);
       console.count("Fetch Showcase");
-      const q = query(
-        collection(firestore, "users"),
-        orderBy("lastEdited"),
-        limit(5)
-      );
-      const querySnapshot = await getDocs(q);
-      let randomList = [];
-      querySnapshot.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        randomList.push(doc.data());
-      });
-      randomList = randomList.filter((user) => user.id !== currentUser.uid);
-      setList(randomList);
-      setLoading(false);
-      updateCurrentIndex(randomList.length - 1);
-      setChildRefs(
-        Array(randomList.length)
-          .fill(0)
-          .map((i) => React.createRef())
-      );
+      const accessToken = localStorage.getItem("accessToken");
+      axios
+        .get(`${process.env.REACT_APP_API_BASE_URL}/random`, {
+          headers: {
+            "x-auth-token-header": `BEARER ${accessToken}`,
+          },
+        })
+        .then((res) => {
+          let randomList = res.data ?? [];
+          randomList = randomList
+            .filter((user) => user.id !== currentUser.uid)
+            .reverse();
+          setList(randomList);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     };
 
     const fetchThisUser = async () => {
       setLoading(true);
-      const docRef = doc(firestore, `users/${currentUser.uid}`);
-      getDoc(docRef).then((docSnap) => {
-        setThisUser(docSnap.data());
-        setLoading(false);
-      });
+      const accessToken = localStorage.getItem("accessToken");
+      await axios
+        .get(`${process.env.REACT_APP_API_BASE_URL}/user/${currentUser.uid}`, {
+          headers: {
+            "x-auth-token-header": `BEARER ${accessToken}`,
+          },
+        })
+        .then((res) => {
+          setThisUser(res.data);
+          setLoading(false);
+        });
     };
     try {
       fetchThisUser();
@@ -143,12 +69,12 @@ export const ShowcasePage = () => {
     } catch (err) {
       setError(err);
     }
-  }, []);
+  }, [currentUser]);
 
   return (
     <div className="showcase-page-container">
       <div className="header-bar">
-        <h1 className="heading">Hotboard</h1>
+        <h1 className="heading">Chooose</h1>
         <div className="navigation-buttons">
           <Link to="/leaderboard">
             <button>
@@ -158,7 +84,7 @@ export const ShowcasePage = () => {
           <button onClick={logout}>
             <FiLogOut size={20} color="purple" />
           </button>
-          {currentUser && currentUser.photoURL && (
+          {currentUser && (
             <Link to="/profile">
               <button className="profile-image-button">
                 <img src={currentUser.photoURL} alt="fireheart"></img>
@@ -167,39 +93,14 @@ export const ShowcasePage = () => {
           )}
         </div>
       </div>
-      <div className="swipe-cards-container">
-        {loading && <div>Loading...</div>}
-        {!loading && currentIndex < 0 && (
-          <div style={{ color: "purple" }}>Are you feeling good?</div>
-        )}
-        {!loading &&
-          list.map((user, index) => (
-            <SwipeCard
-              childRef={childRefs[index]}
-              key={index}
-              index={index}
-              image={user.image}
-              removeCard={removeCard}
-              onSwiped={swiped}
-              onDone={onCardGone}
-            />
-          ))}
-      </div>
-      <div className="swipe-buttons">
-        <button onClick={() => removeCard("left")}>
-          <ImCross size={20} color="#ec75f6" />
-        </button>
-        <button onClick={() => removeCard("right")}>
-          <img src={fireHeart} alt="fireheart"></img>
-        </button>
-      </div>
+      {list && <Choose users={list} />}
       <div className="bottom-navigation-bar">
         <Link to="/leaderboard">
           <button>
             <img src={leaderboard} alt="leaderboard"></img>
           </button>
         </Link>
-        {currentUser && currentUser.photoURL && (
+        {currentUser && (
           <Link to="/profile">
             <button className="profile-image-button">
               <img src={currentUser.photoURL} alt="fireheart"></img>
@@ -210,3 +111,5 @@ export const ShowcasePage = () => {
     </div>
   );
 };
+
+export default ShowcasePage;

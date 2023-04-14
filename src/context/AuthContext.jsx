@@ -9,6 +9,8 @@ import {
 import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { v4 } from "uuid";
 import { updateProfile } from "firebase/auth";
+import Compressor from "compressorjs";
+import axios from "axios";
 
 const AuthContext = React.createContext();
 
@@ -16,101 +18,159 @@ export const useAuth = () => {
   return useContext(AuthContext);
 };
 
-export const AuthProvider = ({ children }) => {
+const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  function signup(user) {
+  async function signup(user) {
     return auth
       .createUserWithEmailAndPassword(user.email, user.password)
       .then((cred) => {
         const uid = cred.user.uid;
         // upload image to storage
-        const imageRef = ref(storage, `user-images/${v4() + user.image.name}`);
-        uploadBytes(imageRef, user.image).then(async (res) => {
-          const imageURL = await getDownloadURL(imageRef);
-          // upload to firestore
-          const uploadUserData = {
-            id: uid,
-            email: user.email,
-            name: user.name,
-            yearOfStudy: user.yearOfStudy,
-            firehearts: 300,
-            image: imageURL,
-            lastEdited: user.lastEdited,
-          };
-          const usersRef = doc(firestore, `users/${uid}`);
-          setDoc(usersRef, uploadUserData).then(() => {
-            console.log("User Created Successfully");
-            updateProfile(auth.currentUser, {
-              displayName: uploadUserData.name,
-              photoURL: imageURL,
-            }).then(() => {
-              console.log("User info added");
-            });
+        const formData = new FormData();
+        formData.append("image", user.image);
+        axios
+          .post(`${process.env.REACT_APP_API_BASE_URL}/upload`, formData, {
+            "Content-type": "multipart/form-date",
+          })
+          .then((res) => {
+            const image = res.data;
+            // upload to database
+            const uploadUserData = {
+              id: uid,
+              email: user.email,
+              name: user.name,
+              yearOfStudy: user.yearOfStudy,
+              image: image,
+            };
+            axios
+              .post(
+                `${process.env.REACT_APP_API_BASE_URL}/profile`,
+                uploadUserData,
+                {
+                  "Content-type": "application/json",
+                }
+              )
+              .then((res) => {
+                const tokens = res.data;
+                console.log("User Created Successfully");
+                // save tokens in local storage or cookies
+                localStorage.setItem("accessToken", tokens.accessToken);
+                localStorage.setItem("refreshToken", tokens.refreshToken);
+                // update firebase auth info
+                updateProfile(auth.currentUser, {
+                  displayName: uploadUserData.name,
+                  photoURL: image.url,
+                }).then(() => {
+                  console.log("User info added to Auth");
+                });
+              });
           });
+      });
+  }
+
+  async function requestUpdate(userDoc, accessToken) {
+    axios
+      .patch(`${process.env.REACT_APP_API_BASE_URL}/update`, userDoc, {
+        "Content-type": "application/json",
+        "x-auth-token-header": accessToken,
+      })
+      .then((res) => {
+        const user = res.data;
+        console.log("User Updated Successfully");
+        updateProfile(auth.currentUser, {
+          displayName: user.name,
+          photoURL: user.image.url,
+        }).then(() => {
+          console.log("User info added to Auth");
         });
       });
   }
 
-  function update(updates) {
+  async function update(updates) {
     const uid = currentUser.uid;
+    const accessToken = localStorage.getItem("accessToken");
+    const refreshToken = localStorage.getItem("refreshToken");
     if (updates.image) {
-      //delete old image from storage
-      let imageID = currentUser.photoURL.substr(
-        currentUser.photoURL.indexOf("%2F") + 3,
-        currentUser.photoURL.indexOf("?") -
-          (currentUser.photoURL.indexOf("%2F") + 3)
-      );
-      imageID = imageID.replace("%20", " ");
-      const oldImageRef = ref(storage, `user-images/${imageID}`);
-      deleteObject(oldImageRef).then(() => {
-        // upload new image to storage
-        const imageRef = ref(
-          storage,
-          `user-images/${v4() + updates.image.name}`
-        );
-        uploadBytes(imageRef, updates.image).then(async (res) => {
-          const imageURL = await getDownloadURL(imageRef);
-          // update on firestore
-          const docRef = doc(firestore, `users/${uid}`);
+      // upload image to storage
+      const formData = new FormData();
+      formData.append("image", updates.image);
+      axios
+        .post(`${process.env.REACT_APP_API_BASE_URL}/upload`, formData, {
+          "Content-type": "multipart/form-date",
+          headers: {
+            "x-auth-token-header": `BEARER ${accessToken}`,
+          },
+        })
+        .then((res) => {
+          const image = res.data;
+          // update on database
           const userDoc = {};
-          userDoc["image"] = imageURL;
+          userDoc["image"] = image;
           if (updates.name) userDoc.name = updates.name;
           if (updates.yearOfStudy) userDoc.yearOfStudy = updates.yearOfStudy;
-          updateDoc(docRef, userDoc).then(() => {
-            updateProfile(auth.currentUser, {
-              displayName: updates.name ?? currentUser.displayName,
-              photoURL: imageURL,
-            }).then(() => {
-              console.log("User info updated");
-            });
-          });
+          try {
+            requestUpdate(userDoc, accessToken);
+          } catch (err) {
+            console.log(err);
+          }
         });
-      });
     } else {
-      // update on firestore
-      const docRef = doc(firestore, `users/${uid}`);
+      // update on database
       const userDoc = {};
       if (updates.name) userDoc.name = updates.name;
       if (updates.yearOfStudy) userDoc.yearOfStudy = updates.yearOfStudy;
-      updateDoc(docRef, userDoc).then(() => {
-        updateProfile(auth.currentUser, {
-          displayName: updates.name ?? currentUser.displayName,
-        }).then(() => {
-          console.log("User info updated");
+      axios
+        .patch(`${process.env.REACT_APP_API_BASE_URL}/update`, userDoc, {
+          "Content-type": "application/json",
+          headers: {
+            "x-auth-token-header": `BEARER ${accessToken}`,
+          },
+        })
+        .then((res) => {
+          const user = res.data;
+          console.log("User Updated Successfully");
+          updateProfile(auth.currentUser, {
+            displayName: user.name,
+          }).then(() => {
+            console.log("User info added to Auth");
+          });
         });
-      });
     }
   }
 
-  function login(user) {
-    return auth.signInWithEmailAndPassword(user.email, user.password);
+  async function login(user) {
+    return auth
+      .signInWithEmailAndPassword(user.email, user.password)
+      .then((cred) => {
+        axios
+          .post(`${process.env.REACT_APP_API_BASE_URL}/login`, {
+            id: cred.user.uid,
+          })
+          .then((res) => {
+            const tokens = res.data;
+            // save tokens in local storage or cookies
+            localStorage.setItem("accessToken", tokens.accessToken);
+            localStorage.setItem("refreshToken", tokens.refreshToken);
+          });
+      });
   }
 
-  function logout() {
-    console.log("logged out");
-    return auth.signOut();
+  async function logout() {
+    const accessToken = localStorage.getItem("accessToken");
+    await axios
+      .delete(`${process.env.REACT_APP_API_BASE_URL}/logout`, {
+        headers: {
+          "x-auth-token-header": `BEARER ${accessToken}`,
+        },
+      })
+      .then(() => {
+        localStorage.setItem("accessToken", null);
+        localStorage.setItem("refreshToken", null);
+        console.log("logged out");
+        return auth.signOut();
+      });
   }
 
   function resetPassword(email) {
@@ -139,3 +199,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthProvider;

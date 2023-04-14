@@ -2,8 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import "./login.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { users, validEmails } from "../../assets/data/users";
+import * as faceapi from "face-api.js";
+import axios from "axios";
+import "./../../combined.css";
 
-export const RegisterPage = () => {
+const RegisterPage = () => {
   const nameRef = useRef();
   const instituteEmailRef = useRef();
   const yearRef = useRef();
@@ -11,32 +15,71 @@ export const RegisterPage = () => {
   const confirmPasswordRef = useRef();
   const [image, setImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [isImageCorrect, setIsImageCorrect] = useState(false);
   const { signup, currentUser } = useAuth();
   const [error, setError] = useState("");
+  const [imageError, setImageError] = useState("");
   const [loading, setLoading] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
   const navigate = useNavigate();
+  const [ip, setIP] = useState("");
 
-  const emailRegex = new RegExp("^[a-zA-Z0-9+_.-]+@iitism.ac.in");
+  const getIP = async () => {
+    const res = await axios.get("https://api.ipify.org/?format=json");
+    console.log(res.data);
+    setIP(res.data.ip);
+  };
+
+  const checkImageValid = async () => {
+    console.log("checking image for faces");
+    await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
+    const detections = await faceapi.detectAllFaces("selected-image");
+    if (detections.length <= 0) throw "Image has no face in it.";
+    else if (detections.length > 1) throw "Image has multiple faces in it.";
+  };
+
+  const checkValidEmail = (email) => {
+    // return true;
+    return validEmails.includes(email.toLowerCase());
+  };
+
+  const setUserDataAssociatedWithEmail = (email) => {
+    const emailUser = users.filter(
+      (user) => user.email === email.toLowerCase()
+    )[0];
+    console.log(emailUser);
+    const d = new Date();
+    yearRef.current.value = d.getFullYear() - emailUser.year_of_admission;
+    nameRef.current.value = emailUser.name;
+  };
 
   const handleChange = () => {
+    setError("");
     const nameFlag = nameRef.current.value && nameRef.current.value.length >= 3;
-    const emailFlag =
-      instituteEmailRef && emailRegex.test(instituteEmailRef.current.value);
+    const emailFlag = checkValidEmail(instituteEmailRef.current.value);
     const yearFlag = yearRef.current.value >= 0 && yearRef.current.value <= 5;
     const passwordFlag =
       passwordRef.current.value.length >= 6 &&
-      passwordRef.current.value === confirmPasswordRef.current.value &&
-      !loading;
-    const imageFlag = image != null;
-    if (!nameFlag) setError("Please enter a valid name");
-    else if (!emailFlag) setError("Please enter a valid IIT(ISM) email");
+      passwordRef.current.value === confirmPasswordRef.current.value;
+    const imageFlag = isImageCorrect && image != null;
+    if (!emailFlag) setError("Please enter a valid IIT(ISM) email");
+    else if (!nameFlag) setError("Please enter a valid name");
     else if (!yearFlag) setError("Please enter a valid study year");
     else if (!passwordFlag) setError("Passwords don't match");
     else if (!imageFlag) setError("Please choose an image");
     else setError("");
-    const flag = nameFlag && emailFlag && yearFlag && passwordFlag && imageFlag;
+    const flag = nameFlag && yearFlag && passwordFlag && imageFlag && !loading;
     setCanSubmit(flag);
+  };
+
+  const handleEmailChange = () => {
+    const emailFlag = checkValidEmail(instituteEmailRef.current.value);
+    if (!emailFlag) setError("Please enter a valid IIT(ISM) email");
+    else {
+      setError("");
+      setUserDataAssociatedWithEmail(instituteEmailRef.current.value);
+      handleChange();
+    }
   };
 
   async function handleSubmit(e) {
@@ -54,6 +97,8 @@ export const RegisterPage = () => {
         lastEdited: Date.now(),
       };
       await signup(user);
+      const ipkey = "userIDwithIP";
+      localStorage.setItem(ipkey, "true");
       navigate("/leaderboard");
     } catch (err) {
       setError(err);
@@ -61,35 +106,74 @@ export const RegisterPage = () => {
     setLoading(false);
   }
 
-  const onImageChange = (event) => {
-    setError("");
-    if (event.target.files && event.target.files[0]) {
-      setImage(URL.createObjectURL(event.target.files[0]));
-      setImageFile(event.target.files[0]);
-    }
-    handleChange();
-  };
-
   useEffect(() => {
     if (currentUser) navigate("/leaderboard");
+    getIP().then(() => {
+      const ipkey = "userIDwithIP";
+      const value = localStorage.getItem(ipkey);
+      if (!value) return;
+      alert(
+        `An account is already linked with this IP address: ${ip}.\nIf you forgot your password, we can help you at login page.`
+      );
+      navigate("/login");
+    });
   }, []);
 
+  useEffect(handleChange, [image, isImageCorrect]);
+
+  const onImageChange = (event) => {
+    setImageError("");
+    setLoading(true);
+    setIsImageCorrect(false);
+    if (event.target.files && event.target.files[0]) {
+      setImage(URL.createObjectURL(event.target.files[0]));
+      console.log(image);
+      setImageFile(event.target.files[0]);
+      checkImageValid()
+        .then(() => {
+          console.log("image file correct");
+          setImageError("");
+          setLoading(false);
+          setIsImageCorrect(true);
+        })
+        .catch((err) => {
+          setImageError(err);
+          setCanSubmit(false);
+          setImage(null);
+          setImageFile(null);
+          setLoading(false);
+        });
+    }
+  };
+
   return (
-    <div className="login-container">
+    <div className="login-container" style={{ height: window.innerHeight }}>
       <div className="header">
         <div className="header-content">
           <label className="choose-file-label" htmlFor="choose-image">
             {image ? (
-              <img className="selected-image-preview" alt="DP" src={image} />
+              <img
+                className="selected-image-preview"
+                alt="DP"
+                src={image}
+                id="selected-image"
+              />
             ) : (
               <div className="selected-image-preview">Choose Image</div>
             )}
           </label>
+          {imageError !== "" && (
+            <div className="error-message">{imageError.toString()}</div>
+          )}
           <input
             type="file"
-            onChange={onImageChange}
+            onChange={(e) => {
+              onImageChange(e);
+              console.log(image);
+              handleChange(e);
+            }}
             className="choose-file"
-            accept="image/png, image/gif, image/jpeg"
+            accept="image/png, image/gif, image/jpeg, image/jpg"
             id="choose-image"
           />
         </div>
@@ -98,19 +182,19 @@ export const RegisterPage = () => {
         <div className="content">
           <form className="form" onSubmit={handleSubmit}>
             <input
-              ref={nameRef}
-              className="input"
-              type="text"
-              placeholder="Name"
-              name="fullname"
-              onChange={handleChange}
-            ></input>
-            <input
               ref={instituteEmailRef}
               className="input"
               type="email"
               placeholder="Institute Email"
               name="email"
+              onChange={handleEmailChange}
+            ></input>
+            <input
+              ref={nameRef}
+              className="input"
+              type="text"
+              placeholder="Name"
+              name="fullname"
               onChange={handleChange}
             ></input>
             <input
@@ -167,3 +251,5 @@ export const RegisterPage = () => {
     </div>
   );
 };
+
+export default RegisterPage;

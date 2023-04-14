@@ -8,8 +8,10 @@ import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import { firestore } from "../../utils/firebase";
 import { FiLogIn, FiLogOut } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
+import "./../../combined.css";
+import axios from "axios";
 
-export const LeaderboardPage = () => {
+const LeaderboardPage = () => {
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,19 +21,19 @@ export const LeaderboardPage = () => {
     const fetchLeaders = async () => {
       setLoading(true);
       console.count("Fetch leaderboard");
-      const q = query(
-        collection(firestore, "users"),
-        orderBy("firehearts", "desc"),
-        limit(10)
-      );
-      const querySnapshot = await getDocs(q);
       const listOfLeaders = [];
-      querySnapshot.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        listOfLeaders.push(doc.data());
-      });
-      setLeaders(listOfLeaders);
-      setLoading(false);
+      axios
+        .get(`${process.env.REACT_APP_API_BASE_URL}/leaderboard`, {
+          count: 10,
+        })
+        .then((res) => {
+          const listOfLeaders = res.data ?? [];
+          setLeaders(listOfLeaders);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     };
     try {
       fetchLeaders();
@@ -62,7 +64,7 @@ export const LeaderboardPage = () => {
               </button>
             </Link>
           )}
-          {currentUser && currentUser.photoURL && (
+          {currentUser && (
             <Link to="/profile">
               <button className="profile-image-button">
                 <img src={currentUser.photoURL} alt="fireheart"></img>
@@ -84,10 +86,12 @@ export const LeaderboardPage = () => {
             )}
             {leaders.map((user, index) => (
               <LeaderboardTile
+                key={index}
                 rank={index + 1}
                 fires={user.firehearts}
                 name={user.name}
                 yearOfStudy={user.yearOfStudy}
+                image={user.image}
               />
             ))}
           </div>
@@ -100,10 +104,10 @@ export const LeaderboardPage = () => {
             <img src={fireheart} alt="fireheart"></img>
           </button>
         </Link>
-        {currentUser && currentUser.photoURL && (
+        {currentUser && (
           <Link to="/profile">
             <button className="profile-image-button">
-              <img src={currentUser.photoURL} alt="fireheart"></img>
+              <img src={currentUser.photoURL} alt="profile"></img>
             </button>
           </Link>
         )}
@@ -118,3 +122,5 @@ export const LeaderboardPage = () => {
     </div>
   );
 };
+
+export default LeaderboardPage;
